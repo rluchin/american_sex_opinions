@@ -1,0 +1,315 @@
+---
+title: "America's Opinion of Sex Gradually Liberalizing Over Time"
+author: "Russell Luchin"
+thanks: "GitHub repo for replication can be found at"
+format: pdf
+editor: visual
+---
+
+# 1 Introduction
+
+```{r}
+#| echo: false
+#| include: false
+
+#Load required packages
+library(readxl)
+library(dplyr)
+library(openxlsx)
+library(ggplot2)
+library(knitr)
+```
+
+# 2 Data
+
+## 2.1 Raw Data
+
+Data was acquired from the American General Social Survey, or GSS. 4 data sets were acquired: Opinion on Porn Law, Opinion on Premarital Sex, Opinion on Teenage Sex, and Opinion on Extramarital Sex. Data was exported as .xlsx files, or Excel sheets. Structure of the Excel sheets was 3 rows, with "year", "id\_", and the response in a row with the same name as the variable (example: pornlaw data had "pornlaw" as the response row). Data had as many columns as historic respondents to the survey question, reaching upwards of 8000 columns.
+
+```{r}
+#| echo: false
+#| warning: false
+
+#Create table to demonstrate how raw data was sorted
+
+# Filepath
+file_path <- "inputs/data/raw_data_porn.xlsx"
+
+# Read the Excel file
+data <- read_excel(file_path)
+
+# Display the first 3 rows of the table in an attractive format
+kable(head(data, 3), format = "html", caption = "First Three Rows of Data - pornlaw")
+```
+
+```{r}
+#| echo: false
+#| include: false
+#| warning: false
+
+#Clean Data - premarsx
+
+# Load the data
+data <- read_excel("inputs/data/raw_data_premarsex.xlsx")
+
+# Clean and organize the data
+cleaned_data_premarsex <- data %>%
+  group_by(year, premarsx) %>%
+  summarise(count = n()) %>%
+  arrange(year, premarsx)
+
+# Remove "Inapplicable" Respondants
+cleaned_data_premarsex <- cleaned_data_premarsex %>%
+  filter(premarsx != ".i:  Inapplicable")
+
+# Display the cleaned data
+print(cleaned_data_premarsex)
+
+# Write the cleaned data to a new Excel file
+write.xlsx(cleaned_data_premarsex, "outputs/data/cleaned_data_premarsex.xlsx")
+```
+
+```{r}
+#| echo: false
+#| include: false
+#| warning: false
+
+#Clean Data - porn
+
+# Load the data
+data <- read_excel("inputs/data/raw_data_porn.xlsx")
+
+# Clean and organize the data
+cleaned_data_porn <- data %>%
+  group_by(year, pornlaw) %>%
+  summarise(count = n(), .groups = 'drop') %>%
+  arrange(year, pornlaw)
+
+# Remove "Inapplicable" Respondants
+cleaned_data_porn <- cleaned_data_porn %>%
+  filter(pornlaw != ".i:  Inapplicable")
+
+# Display the cleaned data to confirm the removal
+print(cleaned_data_porn)
+
+# Write the cleaned and filtered data to a new Excel file
+write.xlsx(cleaned_data_porn, "outputs/data/cleaned_data_porn.xlsx")
+```
+
+```{r}
+#| echo: false
+#| include: false
+#| warning: false
+
+#Clean Data - teensex
+
+# Load the data
+data <- read_excel("inputs/data/raw_data_teensex.xlsx")
+
+# Clean and organize the data
+cleaned_data_teensex <- data %>%
+  group_by(year, teensex) %>%
+  summarise(count = n()) %>%
+  arrange(year, teensex)
+
+# Remove "Inapplicable" Respondants
+cleaned_data_teensex <- cleaned_data_teensex %>%
+  filter(teensex != ".i:  Inapplicable")
+
+# Display the cleaned data
+print(cleaned_data_teensex)
+
+# Write the cleaned data to a new Excel file
+write.xlsx(cleaned_data_teensex, "outputs/data/cleaned_data_teensex.xlsx")
+```
+
+```{r}
+#| echo: false
+#| include: false
+#| warning: false
+
+#Clean Data - swingers
+
+# Load the data
+data <- read_excel("inputs/data/raw_data_xmarsex.xlsx")
+
+# Clean and organize the data
+cleaned_data_xmarsex <- data %>%
+  group_by(year, xmarsex) %>%
+  summarise(count = n()) %>%
+  arrange(year, xmarsex)
+
+# Remove "Inapplicable" Respondants
+cleaned_data_xmarsex <- cleaned_data_xmarsex %>%
+  filter(xmarsex != ".i:  Inapplicable")
+
+# Display the cleaned data
+print(cleaned_data_xmarsex)
+
+# Write the cleaned data to a new Excel file
+write.xlsx(cleaned_data_xmarsex, "outputs/data/cleaned_data_xmarsex.xlsx")
+```
+
+## 2.2 Clean Data
+
+Data was cleaned by removing the non-valuable response ".i Inapplicable" from all acquired datasets. Data was further cleaned by aggregating each response by year and replacing the "id\_" row with "count"; resulting in less columns and allowing the data to be plotted neatly.
+
+```{r}
+#| echo: false
+#| warning: false
+
+#Create table to demonstrate how raw data was sorted
+
+# Filepath
+file_path <- "outputs/data/cleaned_data_porn.xlsx"
+
+# Read the Excel file
+data <- read_excel(file_path)
+
+# Display the first 3 rows of the table in an attractive format
+kable(head(data, 3), format = "html", caption = "First Three Rows of Data - Cleaned pornlaw")
+```
+
+## 2.3 Data Limitations
+
+GSS surveys are conducted in person with a select few interviews being conducted over the phone. 2020 and 2021 are outliers, with those interviews being conducted primarily online and through the phone. This might results in some demographic biases in the data, with younger people less likely to be open to in-person interviews and older people having lower access/proficiency with online mediums (CITE).
+
+### 2.3.1 Discrepancies in Methodology
+
+GSS survey data is collected primarily through in person interviews. However, due to the 2020 COVID-19 pandemic there is a major discrepancy in data collection methodology from the years 2020-2022. 2020 and 2021 were collected through online surveys primarily, and are aggregated into one unit as 2020-2021 rather than 2020 and 2021. Grouping these years together, alongside changing mediums, potentially caused an extreme demographic skew in the data. Furthermore, in 2022, GSS conducted the survey in 2 groups: group A with in-person interviews and group B with online/phone interviews (CITE). The responses of these groups were not compared, rather it was a means to test data collection. This is a missed opportunity to gauge demographic skew, as the acquired data only lists one set of 2022 responses.
+
+### 2.3.2 Question Ambiguity/Flaws
+
+The questions surrounding sex are not as clear cut as other survey questions, leaving a lot of room for interpretation among responses. The most severe violator is the question used to collect the "teensex" variable: \
+"*There's been a lot of discussion about the way morals and attitudes about sex are changing in this country. If a man and woman have sex relations before marriage, do you think it is always wrong, almost always wrong, wrong only sometimes, or not wrong at all? A. What if they are in their early teens, say 14 to 16 years old? In that case, do you think sex relations before marriage are always wrong, almost always wrong, wrong only sometimes, or not wrong at all?*"
+
+This question leaves a lot of interpretability as to *who* is having sex. It is not unreasonable to interpret the question as an adult having sex with a teen and gauging the respondents' opinion on that scenario. Furthermore, the question gives a range of 14-16 years old; this is flawed for the reason that 14 and 16 have different social consensuses around acceptable intimate relations. Public consensus would agree that 14 is young to engage in intercourse, while 16 is a legal age of consent in some US states. Depending on demographic, state, and even which age is more prominent in the respondent's head (14 or 16) will cause the answer to be skewed towards an extreme which may not be intended. A contextual reading would assume this question is asking if teenagers engaging in sex with teenages is morally sound, but as the question is asked in the way it is it wouldn't be unreasonable to assume many respondents parse this question differently.
+
+```{r}
+#| echo: false
+#| warning: false
+
+# Read the cleaned data
+data <- read_excel("outputs/data/cleaned_data_teensex.xlsx")
+
+# Prepare the data
+# Correct the misspelling for "ALMST ALWAYS WRG" if necessary. Adjust based on actual values in your dataset.
+data$teensex <- as.factor(data$teensex)
+levels(data$teensex) <- c(levels(data$teensex), "ALMOST ALWAYS WRG")
+data$teensex[data$teensex == "ALMST ALWAYS WRG"] <- "ALMOST ALWAYS WRG"
+
+data_prepared <- data %>%
+  mutate(response_group = case_when(
+    teensex %in% c("ALWAYS WRONG", "ALMOST ALWAYS WRG") ~ "Targeted Responses",
+    TRUE ~ "Other Responses"
+  )) %>%
+  group_by(year) %>%
+  summarise(
+    total_count = sum(count),
+    targeted_count = sum(count[response_group == "Targeted Responses"])
+  ) %>%
+  mutate(percentage = (targeted_count / total_count) * 100)
+
+# Graph the data
+ggplot(data_prepared, aes(x = year, y = percentage)) +
+  geom_line() +
+  geom_point() +
+  geom_smooth(method = "lm", color = "red", se = FALSE) +
+  labs(title = "Percentage of Respondents Against Teenage Sexual Intercourse",
+       x = "Year",
+       y = "Percentage") +
+  theme_minimal()
+```
+
+```{r}
+#| echo: false
+#| warning: false
+
+# Read the cleaned data
+data <- read_excel("outputs/data/cleaned_data_porn.xlsx")
+
+# Prepare the data
+data_prepared <- data %>%
+  mutate(response = ifelse(pornlaw == "There should be laws against the distribution of pornography whatever the age", "Targeted Response", "Other Responses")) %>%
+  group_by(year) %>%
+  summarise(
+    total_count = sum(count),
+    targeted_count = sum(count[response == "Targeted Response"])
+  ) %>%
+  mutate(percentage = (targeted_count / total_count) * 100)
+
+# Graph the data with a line of best fit
+ggplot(data_prepared, aes(x = year, y = percentage)) +
+  geom_line() +
+  geom_point() +
+  geom_smooth(method = "lm", color = "red", se = FALSE) +
+  labs(title = "Percentage of Respondents Favoring Laws Against Pornography",
+       x = "Year",
+       y = "Percentage (%)") +
+  theme_minimal()
+```
+
+```{r}
+#| echo: false
+#| warning: false
+
+#Opinion of Extramarital Sex
+
+# Read the cleaned data
+data <- read_excel("outputs/data/cleaned_data_xmarsex.xlsx")
+
+# Prepare the data
+data_prepared <- data %>%
+  mutate(response = ifelse(xmarsex == "ALWAYS WRONG", "ALWAYS WRONG", "Other Responses")) %>%
+  group_by(year) %>%
+  summarise(
+    total_count = sum(count),
+    always_wrong_count = sum(count[response == "ALWAYS WRONG"])
+  ) %>%
+  mutate(percentage = (always_wrong_count / total_count) * 100)
+
+# Graph the data with a line of best fit
+ggplot(data_prepared, aes(x = year, y = percentage)) +
+  geom_line() +
+  geom_point() +
+  geom_smooth(method = "lm", color = "red", se = FALSE) +
+  labs(title = "Percentage of Americans Against Extramarital Sex",
+       x = "Year",
+       y = "Percentage (%)") +
+  theme_minimal()
+```
+
+```{r}
+#| echo: false
+#| warning: false
+
+# Read the cleaned data
+data <- read_excel("outputs/data/cleaned_data_premarsex.xlsx")
+
+# Prepare the data
+data$premarsx <- as.factor(data$premarsx)
+levels(data$premarsx) <- c(levels(data$premarsx), "ALMOST ALWAYS WRG")
+data$premarsx[data$premarsx == "ALMST ALWAYS WRG"] <- "ALMOST ALWAYS WRG"
+
+data_prepared <- data %>%
+  mutate(response_group = case_when(
+    premarsx %in% c("ALWAYS WRONG", "ALMOST ALWAYS WRG") ~ "Targeted Responses",
+    TRUE ~ "Other Responses"
+  )) %>%
+  group_by(year) %>%
+  summarise(
+    total_count = sum(count),
+    targeted_count = sum(count[response_group == "Targeted Responses"])
+  ) %>%
+  mutate(percentage = (targeted_count / total_count) * 100)
+
+# Graph the data
+ggplot(data_prepared, aes(x = year, y = percentage)) +
+  geom_line() +
+  geom_point() +
+  geom_smooth(method = "lm", color = "red", se = FALSE) +
+  labs(title = "Percentage of Respondents Against Premarital Sex",
+       x = "Year",
+       y = "Percentage") +
+  theme_minimal()
+```
