@@ -1,12 +1,28 @@
 ---
 title: "America's Opinion of Sex Gradually Liberalizing Over Time"
-author: "Russell Luchin"
-thanks: "GitHub repo for replication can be found at"
+subtitle: "An analysis of the US General Social Survey  (1972 to 2022)"
+author: 
+  - Russell Luchin
+thanks: "Code and data are available at: https://github.com/rluchin/american_sex_opinions. Thank you to the R core team for making the analysis of this data possible and to Rohan Alexander for reviewing my findings along the way."
+date: today
+date-format: long
+abstract: "Four variables acquired from the US social survey were analyzed and cross-references accross decades in order to gauge general opinion around common sexual practices. Analysis confirms an overall trend of liberalization but also notes unusual conservative skews with certain variables. Findings also indicate a need to review data collection practices. Future analysis of the same variables is recommended following an overhaul of data collection practices for an increasingly online culture."
 format: pdf
+number-sections: true
+toc: true
 editor: visual
+bibliography: references.bib
 ---
 
-# 1 Introduction
+# Introduction {#sec-intro}
+
+Sex continues to be a controversial topic in America. Without data, it is clear that there is an overall trend of liberalization in terms of opinions on sexual relations. Depending on your region, who you are, or even the media you interact with, you may question whether we're trending in a more liberal direction, however. This study aims to fill that gap by analyzing US Social Survey data by tracking proportion of "negative" responses to questions which gauge the opinion of particular sexual acts.\
+\
+Data was analyzed by pulling social survey data by way of Excel sheets. From there, data was cleaned to eliminate "Invalid" or "Inapplicable" responses from the sheet to ensure analysis was based on the most accurate opinions without artificially deflating proportion. From the cleaned data, we created an estimand: the estimand for this study was the percentage of negative responses to a question in relation to other responses for the particular survey question. The question, and possible responses to each question, can be found in @sec-appendix-2.
+
+Data was further analyzed by comparing differences in responses accross age, year of survey, geographical region, and declared gender. What was found is that, while there is overall liberalization of sexual opinions, there are some data points which skew conservative. Notably, women hold a higher proportion of negative opinions around sexual acts than men according to the findings. Furthermore, pornography continues to be a controversial topic regardless of age group, although questions arise whether data collection practices resulted in an abnormally large proportion of negative responses for specific questions.
+
+In the course of analyzing the data, significant issues were found relating to collection methodology and question ambiguity. Survey questions were deemed to be too ambiguous in some cases. Additionally, discrepancies in data collection likely resulted in over-representation of progressive sexual opinions in the 2020-2021 survey period. Weaknesses in the data are discussed in detail, and recommendations are made to enhance the quality of collected data for the future. Importance of accurate data collection is discussed further, and a sample of improved survey questions is attached in @sec-appendix-1.
 
 ```{r}
 #| echo: false
@@ -18,13 +34,16 @@ library(dplyr)
 library(openxlsx)
 library(ggplot2)
 library(knitr)
+library(patchwork)
+library(tidyr)
+library(here)
 ```
 
-# 2 Data
+# Data {#sec-data}
 
-## 2.1 Raw Data
+## Raw Data {#sec-data1}
 
-Data was acquired from the American General Social Survey, or GSS. 4 data sets were acquired: Opinion on Porn Law, Opinion on Premarital Sex, Opinion on Teenage Sex, and Opinion on Extramarital Sex. Data was exported as .xlsx files, or Excel sheets. Structure of the Excel sheets was 3 rows, with "year", "id\_", and the response in a row with the same name as the variable (example: pornlaw data had "pornlaw" as the response row). Data had as many columns as historic respondents to the survey question, reaching upwards of 8000 columns.
+Data was acquired from the American General Social Survey, or GSS. 4 data sets were acquired: Opinion on Porn Law, Opinion on Premarital Sex, Opinion on Teenage Sex, and Opinion on Extramarital Sex. Data was exported as .xlsx files, or Excel sheets. Structure of the Excel sheets was three rows, with "year", "id\_", and the response in a row with the same name as the variable (example: pornlaw data had "pornlaw" as the response row). Data had as many columns as historic respondents to the survey question, reaching upwards of 8000 columns.
 
 ```{r}
 #| echo: false
@@ -58,7 +77,7 @@ cleaned_data_premarsex <- data %>%
   summarise(count = n()) %>%
   arrange(year, premarsx)
 
-# Remove "Inapplicable" Respondants
+# Remove "Inapplicable" Respondents
 cleaned_data_premarsex <- cleaned_data_premarsex %>%
   filter(premarsx != ".i:  Inapplicable")
 
@@ -85,7 +104,7 @@ cleaned_data_porn <- data %>%
   summarise(count = n(), .groups = 'drop') %>%
   arrange(year, pornlaw)
 
-# Remove "Inapplicable" Respondants
+# Remove "Inapplicable" Respondents
 cleaned_data_porn <- cleaned_data_porn %>%
   filter(pornlaw != ".i:  Inapplicable")
 
@@ -112,7 +131,7 @@ cleaned_data_teensex <- data %>%
   summarise(count = n()) %>%
   arrange(year, teensex)
 
-# Remove "Inapplicable" Respondants
+# Remove "Inapplicable" Respondents
 cleaned_data_teensex <- cleaned_data_teensex %>%
   filter(teensex != ".i:  Inapplicable")
 
@@ -139,7 +158,7 @@ cleaned_data_xmarsex <- data %>%
   summarise(count = n()) %>%
   arrange(year, xmarsex)
 
-# Remove "Inapplicable" Respondants
+# Remove "Inapplicable" Respondents
 cleaned_data_xmarsex <- cleaned_data_xmarsex %>%
   filter(xmarsex != ".i:  Inapplicable")
 
@@ -150,7 +169,7 @@ print(cleaned_data_xmarsex)
 write.xlsx(cleaned_data_xmarsex, "outputs/data/cleaned_data_xmarsex.xlsx")
 ```
 
-## 2.2 Clean Data
+## Clean Data {#sec-data2}
 
 Data was cleaned by removing the non-valuable response ".i Inapplicable" from all acquired datasets. Data was further cleaned by aggregating each response by year and replacing the "id\_" row with "count"; resulting in less columns and allowing the data to be plotted neatly.
 
@@ -170,24 +189,29 @@ data <- read_excel(file_path)
 kable(head(data, 3), format = "html", caption = "First Three Rows of Data - Cleaned pornlaw")
 ```
 
-## 2.3 Data Limitations
+## Data Limitations {#sec-data3}
 
-GSS surveys are conducted in person with a select few interviews being conducted over the phone. 2020 and 2021 are outliers, with those interviews being conducted primarily online and through the phone. This might results in some demographic biases in the data, with younger people less likely to be open to in-person interviews and older people having lower access/proficiency with online mediums (CITE).
+GSS surveys are conducted in person with a select few interviews being conducted over the phone. 2020 and 2021 are outliers, with those interviews being conducted primarily online and through the phone. This might result in some demographic biases in the data, with younger people less likely to be open to in-person interviews and older people having lower access/proficiency with online mediums [@citeIEEE].
 
-### 2.3.1 Discrepancies in Methodology
+### Discrepancies in Methodology {#sec-data3.1}
 
-GSS survey data is collected primarily through in person interviews. However, due to the 2020 COVID-19 pandemic there is a major discrepancy in data collection methodology from the years 2020-2022. 2020 and 2021 were collected through online surveys primarily, and are aggregated into one unit as 2020-2021 rather than 2020 and 2021. Grouping these years together, alongside changing mediums, potentially caused an extreme demographic skew in the data. Furthermore, in 2022, GSS conducted the survey in 2 groups: group A with in-person interviews and group B with online/phone interviews (CITE). The responses of these groups were not compared, rather it was a means to test data collection. This is a missed opportunity to gauge demographic skew, as the acquired data only lists one set of 2022 responses.
+GSS survey data is collected primarily through in person interviews. However, due to the 2020 COVID-19 pandemic there is a major discrepancy in data collection methodology from the years 2020-2022. 2020 and 2021 were collected through online surveys primarily, and are aggregated into one unit as 2020-2021 rather than 2020 and 2021. Grouping these years together, alongside changing mediums, potentially caused an extreme demographic skew in the data. Furthermore, in 2022, GSS conducted the survey in 2 groups: group A with in-person interviews and group B with online/phone interviews. The responses of these groups were not compared, rather it was a means to test data collection. This is a missed opportunity to gauge demographic skew, as the acquired data only lists one set of 2022 responses.
 
-### 2.3.2 Question Ambiguity/Flaws
+### Question Ambiguity/Flaws {#sec-data3.2}
 
-The questions surrounding sex are not as clear cut as other survey questions, leaving a lot of room for interpretation among responses. The most severe violator is the question used to collect the "teensex" variable: \
+The questions surrounding sex are not as clear cut as other survey questions, leaving a lot of room for interpretation among responses. The most severe violator is the question used to collect the "teensex" variable:\
 "*There's been a lot of discussion about the way morals and attitudes about sex are changing in this country. If a man and woman have sex relations before marriage, do you think it is always wrong, almost always wrong, wrong only sometimes, or not wrong at all? A. What if they are in their early teens, say 14 to 16 years old? In that case, do you think sex relations before marriage are always wrong, almost always wrong, wrong only sometimes, or not wrong at all?*"
 
-This question leaves a lot of interpretability as to *who* is having sex. It is not unreasonable to interpret the question as an adult having sex with a teen and gauging the respondents' opinion on that scenario. Furthermore, the question gives a range of 14-16 years old; this is flawed for the reason that 14 and 16 have different social consensuses around acceptable intimate relations. Public consensus would agree that 14 is young to engage in intercourse, while 16 is a legal age of consent in some US states. Depending on demographic, state, and even which age is more prominent in the respondent's head (14 or 16) will cause the answer to be skewed towards an extreme which may not be intended. A contextual reading would assume this question is asking if teenagers engaging in sex with teenages is morally sound, but as the question is asked in the way it is it wouldn't be unreasonable to assume many respondents parse this question differently.
+This question leaves a lot of interpretability as to *who* is having sex. It is not unreasonable to interpret the question as an adult having sex with a teen and gauging the respondents' opinion on that scenario. Furthermore, the question gives a range of 14-16 years old; this is flawed for the reason that 14 and 16 have different social consensuses around acceptable intimate relations. Public consensus would agree that 14 is young to engage in intercourse, while 16 is a legal age of consent in some US states. Depending on demographic, state, and even which age is more prominent in the respondent's head (14 or 16) will cause the answer to be skewed towards an extreme which may not be intended. A contextual reading would assume this question is asking if teenagers engaging in sex with teenagers is morally sound, but as the question is asked in the way it is it wouldn't be unreasonable to assume many respondents parse this question differently.
+
+### Limitations in Collection {#sec-data.3.3}
+
+Data acquired was collected by means of in-person interviews. While this is not a problem for earlier years (pre-2000s), the issue of accessibility arises. While in-person collection can allow for greater control and a higher quality of interview, individual preference is skewing towards a remote interview as early as the middle 2010s. Increased preference for a phone or online interview can lead to sample bias, as younger age groups are increasingly averse to participating in in-person interviews unless completely necessary. This seems to be a known limitation, as more recent surveys have been conducted with both in-person and remote samples. Further data will need to be acquired to test the limitation of collection (if any), however this potential limitation should be noted as we will be analyzing age-based data in @sec-results.
 
 ```{r}
 #| echo: false
 #| warning: false
+#| include: false
 
 # Read the cleaned data
 data <- read_excel("outputs/data/cleaned_data_teensex.xlsx")
@@ -198,7 +222,7 @@ data$teensex <- as.factor(data$teensex)
 levels(data$teensex) <- c(levels(data$teensex), "ALMOST ALWAYS WRG")
 data$teensex[data$teensex == "ALMST ALWAYS WRG"] <- "ALMOST ALWAYS WRG"
 
-data_prepared <- data %>%
+data_preparedteen <- data %>%
   mutate(response_group = case_when(
     teensex %in% c("ALWAYS WRONG", "ALMOST ALWAYS WRG") ~ "Targeted Responses",
     TRUE ~ "Other Responses"
@@ -211,7 +235,7 @@ data_prepared <- data %>%
   mutate(percentage = (targeted_count / total_count) * 100)
 
 # Graph the data
-ggplot(data_prepared, aes(x = year, y = percentage)) +
+ggplot(data_preparedteen, aes(x = year, y = percentage)) +
   geom_line() +
   geom_point() +
   geom_smooth(method = "lm", color = "red", se = FALSE) +
@@ -224,12 +248,13 @@ ggplot(data_prepared, aes(x = year, y = percentage)) +
 ```{r}
 #| echo: false
 #| warning: false
+#| include: false
 
 # Read the cleaned data
 data <- read_excel("outputs/data/cleaned_data_porn.xlsx")
 
 # Prepare the data
-data_prepared <- data %>%
+data_preparedporn <- data %>%
   mutate(response = ifelse(pornlaw == "There should be laws against the distribution of pornography whatever the age", "Targeted Response", "Other Responses")) %>%
   group_by(year) %>%
   summarise(
@@ -239,7 +264,7 @@ data_prepared <- data %>%
   mutate(percentage = (targeted_count / total_count) * 100)
 
 # Graph the data with a line of best fit
-ggplot(data_prepared, aes(x = year, y = percentage)) +
+ggplot(data_preparedporn, aes(x = year, y = percentage)) +
   geom_line() +
   geom_point() +
   geom_smooth(method = "lm", color = "red", se = FALSE) +
@@ -252,6 +277,7 @@ ggplot(data_prepared, aes(x = year, y = percentage)) +
 ```{r}
 #| echo: false
 #| warning: false
+#| include: false
 
 #Opinion of Extramarital Sex
 
@@ -259,7 +285,7 @@ ggplot(data_prepared, aes(x = year, y = percentage)) +
 data <- read_excel("outputs/data/cleaned_data_xmarsex.xlsx")
 
 # Prepare the data
-data_prepared <- data %>%
+data_preparedexmar <- data %>%
   mutate(response = ifelse(xmarsex == "ALWAYS WRONG", "ALWAYS WRONG", "Other Responses")) %>%
   group_by(year) %>%
   summarise(
@@ -269,7 +295,7 @@ data_prepared <- data %>%
   mutate(percentage = (always_wrong_count / total_count) * 100)
 
 # Graph the data with a line of best fit
-ggplot(data_prepared, aes(x = year, y = percentage)) +
+ggplot(data_preparedexmar, aes(x = year, y = percentage)) +
   geom_line() +
   geom_point() +
   geom_smooth(method = "lm", color = "red", se = FALSE) +
@@ -282,6 +308,7 @@ ggplot(data_prepared, aes(x = year, y = percentage)) +
 ```{r}
 #| echo: false
 #| warning: false
+#| include: false
 
 # Read the cleaned data
 data <- read_excel("outputs/data/cleaned_data_premarsex.xlsx")
@@ -291,7 +318,7 @@ data$premarsx <- as.factor(data$premarsx)
 levels(data$premarsx) <- c(levels(data$premarsx), "ALMOST ALWAYS WRG")
 data$premarsx[data$premarsx == "ALMST ALWAYS WRG"] <- "ALMOST ALWAYS WRG"
 
-data_prepared <- data %>%
+data_preparedpremar <- data %>%
   mutate(response_group = case_when(
     premarsx %in% c("ALWAYS WRONG", "ALMOST ALWAYS WRG") ~ "Targeted Responses",
     TRUE ~ "Other Responses"
@@ -304,7 +331,7 @@ data_prepared <- data %>%
   mutate(percentage = (targeted_count / total_count) * 100)
 
 # Graph the data
-ggplot(data_prepared, aes(x = year, y = percentage)) +
+ggplot(data_preparedpremar, aes(x = year, y = percentage)) +
   geom_line() +
   geom_point() +
   geom_smooth(method = "lm", color = "red", se = FALSE) +
@@ -313,3 +340,514 @@ ggplot(data_prepared, aes(x = year, y = percentage)) +
        y = "Percentage") +
   theme_minimal()
 ```
+
+## Analysis {#sec-data4}
+
+```{r}
+#| fig-cap: "Cleaned data tracking % of negative responses to all other responses over time with line of best fit."
+#| label: fig-1
+#| echo: false
+#| warning: false
+
+# Graph 1: Against Premarital Sex
+p1 <- ggplot(data_preparedteen, aes(x = year, y = percentage)) +
+  geom_line() +
+  geom_point() +
+  geom_smooth(method = "lm", color = "red", se = FALSE) +
+  labs(title = "Against Premarital Sex",
+       x = "Year",
+       y = "Percentage") +
+  theme_minimal()
+
+# Graph 2: Against Extramarital Sex
+p2 <- ggplot(data_preparedexmar, aes(x = year, y = percentage)) +
+  geom_line() +
+  geom_point() +
+  geom_smooth(method = "lm", color = "red", se = FALSE) +
+  labs(title = "Against Extramarital Sex",
+       x = "Year",
+       y = "Percentage") +
+  theme_minimal()
+
+# Graph 3: Favoring Laws Against Pornography
+p3 <- ggplot(data_preparedporn, aes(x = year, y = percentage)) +
+  geom_line() +
+  geom_point() +
+  geom_smooth(method = "lm", color = "red", se = FALSE) +
+  labs(title = "Laws Against Pornography",
+       x = "Year",
+       y = "Percentage") +
+  theme_minimal()
+
+# Graph 4: Against Teenage Sexual Intercourse
+p4 <- ggplot(data_preparedteen, aes(x = year, y = percentage)) +
+  geom_line() +
+  geom_point() +
+  geom_smooth(method = "lm", color = "red", se = FALSE) +
+  labs(title = "Against Teenage Sex",
+       x = "Year",
+       y = "Percentage") +
+  theme_minimal()
+
+# Combine the plots
+p_combined <- p1 + p2 + p3 + p4 +
+  plot_layout(ncol = 2, nrow = 2) # Adjust layout as needed
+
+# Print the combined plot
+print(p_combined)
+```
+
+@fig-1 plots the cleaned data. The estimand we are tracking is the proportion of "negative" responses ("Always Wrong", "Almost Always Wrong", and "Porn Distribution Should Always Be Illegal" responses to the questions) from the first year the question was asked to the most recent. Preliminary analysis shows a gradual liberalization of sexual opinions, with proportion of negative responses all showing a steady decline year over year.\
+\
+There is an outlier concerning the Extramarital Sex data, showing what trends as a steady increase before seeing a severe drop from 2018 to the 2020+ data points. This can partially be attributed to bad data collection.\
+\
+First, the question is ambiguous. The question asks if sexual intercourse, while married, with a partner who isn't your life partner, can be moral. This can insinuate multiple scenarios, but is most likely to be read as "cheating" on your life partner. Because this can be a common interpretation of the question, that would skew the data into having a higher proportion of "negative" responses when compared to the other questions.\
+\
+Furthermore there was a change in data collection methods for the 2020-2021 period, as discussed in Section 2.3.1. As this period was collected remotely, there was likely an influx of younger respondents who are more likely to have alternative or more liberal opinions of sexual relations (such as polygamy) [@citeGenZSex]. Because of this, the severe drop might also be attributed to a significant influx of respondents who were oversampled compared to previous years.
+
+# Results {#sec-results}
+
+Results were conducted by plotting a combination of other census variables alongside our tracked variables. This was done in the same way we plotted our cleaned data: by tracking the proportion of negative responses to all other responses for the question.
+
+## Opinion Across Age Groups {#sec-results2}
+
+```{r}
+#| fig-cap: "Percentage of 'Always Wrong' Responses by Age Group across Different Datasets."
+#| label: fig-2
+#| echo: false
+#| warning: false
+
+
+# Load age data
+age_data <- read_excel("inputs/data/raw_data_age.xlsx")
+
+# Define a function for preprocessing
+preprocess_data <- function(data_path, age_data, topic_name) {
+  data <- read_excel(data_path)
+  
+  # Assuming 'response' column needs to be standardized across datasets
+  if ("premarsx" %in% names(data)) {
+    data$response = data$premarsx
+  } else if ("xmarsex" %in% names(data)) {
+    data$response = data$xmarsex
+  } else if ("teensex" %in% names(data)) {
+    data$response = data$teensex
+  }
+  
+  # Include topic name for identification after merging
+  data$topic = topic_name
+  
+  # Merge with age data
+  merged_data <- merge(data, age_data, by = "id_")
+  
+  return(merged_data)
+}
+
+# Preprocess datasets
+premarital_data <- preprocess_data("inputs/data/raw_data_premarsex.xlsx", age_data, "Premarital Sex")
+extramarital_data <- preprocess_data("inputs/data/raw_data_xmarsex.xlsx", age_data, "Extramarital Sex")
+teen_data <- preprocess_data("inputs/data/raw_data_teensex.xlsx", age_data, "Teen Sex")
+
+# Combine into one dataframe
+combined_data <- bind_rows(premarital_data, extramarital_data, teen_data)
+
+# Categorize by age group, excluding unknown ages
+combined_data <- combined_data %>%
+  filter(age >= 18) %>% 
+  mutate(age_group = case_when(
+    age >= 18 & age <= 30 ~ "18-30",
+    age >= 31 & age <= 50 ~ "31-50",
+    age >= 51 ~ "51+"
+  ))
+
+# Continue with the analysis as before
+analysis_data <- combined_data %>%
+  filter(response == "ALWAYS WRONG") %>%
+  group_by(topic, age_group) %>%
+  summarise(count = n(), .groups = 'drop') %>%
+  mutate(percentage = (count / sum(count)) * 100)
+
+# Plotting
+ggplot(analysis_data, aes(x = age_group, y = percentage, fill = topic)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(x = "Age Group",
+       y = "Percentage",
+        fill = "Dataset") +
+  facet_wrap(~topic) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+@fig-2 plots the proportion of negative responses based on age group for the Extramarital Sex, Premarital Sex, and Teen Sex survey questions. Analyzing this data closer, we see that the 18-30 age group shows the most liberal opinions of sexual acts, having the lowest proportion of negative responses. We also see that the 31-50 and 51+ age groups have similar proportions of negative response, indicating that there is a greater generation difference between "Gen Z" and prior generations than there was "Millennials" and prior generations.\
+\
+Furthermore, we see that Extramarital Sex has the largest difference in opinion between the youngest age group to the older groups. This gives credit to our analysis in Section 2.4, where we discuss the outlier data in @fig-1. To reiterate, collection disparities concerning the most recent surveys might have resulted in oversampling of a younger age group, leading to the unusual drop seen in the Extramarital plotting in @fig-1. @fig-2 gives credit to this analysis by showing Extramarital Sex has the largest difference between young respondents and older respondents.
+
+## Differences in Opinion by Gender {#sec-results3}
+
+```{r}
+#| fig-cap: "Percentage of negative responses across different datasets between biological sexes."
+#| label: fig-3
+#| echo: false
+#| warning: false
+
+
+# Load the biological sex data
+sex_data <- read_excel("inputs/data/raw_data_sex.xlsx") %>%
+  filter(sex %in% c("MALE", "FEMALE"))
+
+# Modify the prepare_data function
+prepare_data <- function(file_path, response_column, topic_name) {
+  data <- read_excel(file_path)
+  
+  # Merge with the filtered biological sex data
+  merged_data <- merge(data, sex_data, by = "id_")
+  
+  # Standardize the response variable without filtering at this stage
+  standardized_data <- merged_data %>%
+    mutate(response = get(response_column),
+           topic = topic_name)
+  
+  return(standardized_data)
+}
+
+# Process datasets
+premarital_data <- prepare_data("inputs/data/raw_data_premarsex.xlsx", "premarsx", "Premarital Sex")
+extramarital_data <- prepare_data("inputs/data/raw_data_xmarsex.xlsx", "xmarsex", "Extramarital Sex")
+teen_sex_data <- prepare_data("inputs/data/raw_data_teensex.xlsx", "teensex", "Teen Sex")
+
+# Analyze "ALWAYS WRONG" responses for combined datasets (excluding porn law data)
+combined_data <- bind_rows(premarital_data, extramarital_data, teen_sex_data) %>%
+  filter(response == "ALWAYS WRONG")
+
+analysis_by_sex <- combined_data %>%
+  group_by(topic, sex) %>%
+  summarise(count = n(), .groups = 'drop') %>%
+  mutate(percentage = (count / sum(count)) * 100)
+
+# First Graph: Analysis by biological sex (excluding porn law data)
+p1 <- ggplot(analysis_by_sex, aes(x = topic, y = percentage, fill = sex)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Against Sexual Acts",
+       x = "", y = "Percentage", fill = "Sex") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "none")
+
+# Separately process and analyze "pornlaw" data
+porn_law_data <- prepare_data("inputs/data/raw_data_porn.xlsx", "pornlaw", "Pornography Laws") %>%
+  filter(response == "There should be laws against the distribution of pornography whatever the age")
+
+analysis_porn_law_by_sex <- porn_law_data %>%
+  group_by(sex) %>%
+  summarise(count = n(), .groups = 'drop') %>%
+  mutate(percentage = (count / sum(count)) * 100)
+
+# Second Graph: Analysis of porn law by biological sex
+p2 <- ggplot(analysis_porn_law_by_sex, aes(x = sex, y = percentage, fill = sex)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Against Pornography",
+       x = "", y = "Percentage", fill = "Sex") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "none")
+
+# Combine the two plots into a single figure
+combined_plot <- p1 / p2
+
+# Print the combined plot
+print(combined_plot)
+```
+
+@fig-3 shows differences between sexual opinions based on declared gender. Overall, we see that respondents who identify as female have slightly more conservatives opinions on sexual acts than men. This trend continues into opinions of pornography, with female respondents having a slightly higher proportion of negative responses than male respondents.\
+\
+This runs counter to common social narratives, which position male-identifying people as having more conservative opinions of sex. The rise of male-centric influences has, especially in the 2020s, has led to an online culture which positions men as having more conservative opinions on sexual relations than women [@citeMisogyny]. Survey data runs counter to these social optics, however as this "influencer culture" has only been around since the late 2010s, the lack of survey data collected during this culture may create a blindspot in the data.\
+\
+As more surveys are collected, this trend might change or see a severe and sudden change like we saw in @fig-1. Furthermore, as this culture seems to be limited to online spaces, online-only surveys might result in an inversion of the trends observed in Figure 3.
+
+## Sex Opinions Between Census Periods {#sec-results4}
+
+```{r}
+#| fig-cap: "Percentage of 'Always Wrong' Responses in the earliest year tracked vs 2018."
+#| label: fig-4
+#| echo: false
+#| warning: false
+
+
+# Read the cleaned data
+data <- read_excel("outputs/data/cleaned_data_premarsex.xlsx")
+
+# Prepare the data, focusing on 1972 and 2019
+data$premarsx <- as.factor(data$premarsx)
+levels(data$premarsx) <- c(levels(data$premarsx), "ALMOST ALWAYS WRG")
+data$premarsx[data$premarsx == "ALMST ALWAYS WRG"] <- "ALMOST ALWAYS WRG"
+
+data_prepared_premar <- data %>%
+  filter(year %in% c(1972, 2018)) %>%
+  mutate(response_group = case_when(
+    premarsx %in% c("ALWAYS WRONG", "ALMOST ALWAYS WRG") ~ "Targeted Responses",
+    TRUE ~ "Other Responses"
+  )) %>%
+  group_by(year) %>%
+  summarise(
+    total_count = sum(count),
+    targeted_count = sum(count[response_group == "Targeted Responses"])
+  ) %>%
+  mutate(percentage = (targeted_count / total_count) * 100)
+
+# Graph the data as a bar graph
+plot_premar <- ggplot(data_prepared_premar, aes(x = as.factor(year), y = percentage, fill = as.factor(year))) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
+  labs(title = "Premarital Sex",
+       x = "Year",
+       y = "Percentage") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+# Read and prepare the dataset for extramarital sex opinions
+data_exmar <- read_excel("outputs/data/cleaned_data_xmarsex.xlsx")
+data_exmar_prepared <- data_exmar %>%
+  filter(year %in% c(1985, 2018)) %>%
+  mutate(response = ifelse(xmarsex %in% c("ALWAYS WRONG", "ALMOST ALWAYS WRG"), "Targeted Responses", "Other Responses")) %>%
+  group_by(year) %>%
+  summarise(
+    total_count = sum(count),
+    always_wrong_count = sum(count[response == "Targeted Responses"])
+  ) %>%
+  mutate(percentage = (always_wrong_count / total_count) * 100)
+
+# Plot for extramarital sex opinions
+plot_exmar <- ggplot(data_exmar_prepared, aes(x = as.factor(year), y = percentage, fill = as.factor(year))) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
+  labs(title = "Extramarital Sex",
+       x = "Year",
+       y = "Percentage") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+# Read and prepare the dataset for teenage sexual intercourse opinions
+data_teen <- read_excel("outputs/data/cleaned_data_teensex.xlsx")
+data_teen_prepared <- data_teen %>%
+  filter(year %in% c(1986, 2018)) %>%
+  mutate(response_group = ifelse(teensex %in% c("ALWAYS WRONG", "ALMOST ALWAYS WRG"), "Targeted Responses", "Other Responses")) %>%
+  group_by(year) %>%
+  summarise(
+    total_count = sum(count),
+    targeted_count = sum(count[response_group == "Targeted Responses"])
+  ) %>%
+  mutate(percentage = (targeted_count / total_count) * 100)
+
+# Plot for teenage sexual intercourse opinions
+plot_teen <- ggplot(data_teen_prepared, aes(x = as.factor(year), y = percentage, fill = as.factor(year))) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
+  labs(title = "Teenage Sex",
+       x = "Year",
+       y = "Percentage") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+# Combine the plots
+combined_plot <- plot_premar / plot_exmar / plot_teen
+
+combined_plot <- combined_plot + theme(legend.position = "none") +
+  plot_layout(ncol = 3, nrow = 1)
+
+# Display the combined plot
+print(combined_plot)
+```
+
+@fig-4 plots the earliest year of when a specific survey question was asked with the 2018 survey. The 2018 survey was chosen on the basis of it being the last one to be collected through a purely in-person method, which helps control the samples between years and ensures there isn't a severe methodology change as discussed prior.\
+\
+The resulting analysis confirms trends seen from @fig-1. Premarital Sex and Teenage Sex opinions show significantly more "liberal" opinions from respondents in the more recent survey when compared to the first survey this question was asked. Extramarital Sex remains the outlier, showing even a slight increase from 1985 to 2018.\
+\
+Overall, this data continues the trends from @fig-1. Opinions on sexual acts have become more liberal as a whole when compared to years prior. Regarding Extramarital Sex seeing a slight increase, this could be due to historical factors. In the years this question was asked first, the sexually promiscuous act of "swinging", or engaging in intercourse with someone else's life partner with their consent, was widely talked about in the media [@citePolygamy]. While this act was berated publicly as being "scandalous" for the period, counter-culture movements pushed against this framing in an attempt to make swinging more acceptable [@citePolygamy]. While @fig-4 shows these counter-culture movements didn't last, their widespread nature in during this period might have led to oversampling of pro-swinging respondents in the earlier years of this question being asked.
+
+## Opinion on Porn Across Regions {#sec-results5}
+
+```{r}
+#| fig-cap: "Percentage of respondents who answered 'There should be laws against the distribution of pornography whatever the age' in the US New England and US East South Atlantic regions."
+#| label: fig-5
+#| echo: false
+#| warning: false
+
+# Load the region data
+region_data <- read_excel("inputs/data/raw_data_region.xlsx") %>%
+  filter(region %in% c("New england", "East south atlantic"))
+
+# Modify the prepare_data function to merge with region data and filter responses
+prepare_data <- function(file_path, response_column, topic_name) {
+  data <- read_excel(file_path)
+  
+  # Merge with the filtered region data
+  merged_data <- merge(data, region_data, by = "id_")
+  
+  # Standardize the response variable without filtering at this stage
+  standardized_data <- merged_data %>%
+    mutate(response = get(response_column),
+           topic = topic_name)
+  
+  return(standardized_data)
+}
+
+# Process "pornlaw" data and filter for specific response
+porn_law_data <- prepare_data("inputs/data/raw_data_porn.xlsx", "pornlaw", "Pornography Laws") %>%
+  filter(response == "There should be laws against the distribution of pornography whatever the age")
+
+# Analyze "pornlaw" data by region
+analysis_porn_law_by_region <- porn_law_data %>%
+  group_by(region) %>%
+  summarise(count = n(), .groups = 'drop') %>%
+  mutate(percentage = (count / sum(count)) * 100)
+
+# Plot the data
+ggplot(analysis_porn_law_by_region, aes(x = region, y = percentage, fill = region)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  labs(x = "Region",
+       y = "Percentage (%)") +
+  scale_x_discrete(labels = c("New england" = "New England", "East south atlantic" = "East South Atlantic")) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+@fig-5 shows differences in opinion of pornography laws in regards to the region of residence of the respondent. What is found is interesting, as it seems to play into certain stereotypes about the corresponding regions.\
+\
+The regions analyzed are the East South Atlantic region, which comprises of Republican, or traditionally conservative states (including Georgia, South Carolina, and North Carolina) and the New England region, which comprises of mostly Democrat or traditionally liberal states (such as Massachusetts, Connecticut, and Vermont).\
+\
+@fig-5 shows that the more conservative cluster of states has a higher proportion of anti-pornography responses when compared the more liberal cluster. Notably, both clusters had a surprisingly high proportion of anti-pornography responses; both having a proportion of over 40% of respondents being against pornography distribution at any age.\
+\
+This could be due to a variety of factors, such as oversampling or question ambiguity; it is possible that respondents are reading this question as laws against *certain types of pornography*, rather than pornography as a monolith.
+
+# Discussion {#sec-discussion}
+
+## General Findings
+
+This paper finds that overall opinions of sex is trending towards more liberal opinions. There are some notable outliers to this trend, however, and the issue of data collection practices in encountered.\
+\
+As a whole, @fig-1 neatly plots all the data as showing gradual liberalization overtime (with the exception of extramarital sex). Upon closer inspection, such as in @fig-5, we find that conservative sexual opinions still have significant representation in the data. This is not a bad thing, but was not clear upon preliminary analysis of how the cleaned data plots. Furthermore, we find several issues with ambiguous questions and oversampling, specifically in relation to pornography and extramarital affairs.\
+\
+The tracked variable for pornography was proportion of respondents that indicated they are against all forms of pornography being accessible at any age (Appendix 1). However, the question leaves reasonable interpretation that it could be against only some forms of pornography being legislation (such as banning access to exploitative porn, but not regulating against consensual porn with legal adults). Due to this, the proportion of respondents who answered with this response might be artificially inflated (see @fig-5); especially considering other studies have found pornography access is on a rise.\
+\
+Regarding extramarital affairs, we find that the data potentially oversampled in young, online respondents in recent years. Looking back to @fig-1, we find that opinion against extramarital affairs steadily increasing before seeing a sharp drop from 2020 onwards. Notably, in 2020-2021, the survey was conducted remotely. As studies have shown young respondents who are exposed to sexually explicit media are more likely to engage in risky sexual behavior [@citeBallard], conducting an online survey (more accessible to young respondents) has likely led to an oversampling of young individuals who hold unusual opinions on sexual relations.
+
+## Discrepancies
+
+As discussed in @sec-data3.1, discrepancies in methodology created issues in data consistency. The significant decline in proportion of negative responses for the 2020-2021 survey indicates an unusual influx of respondents with liberal opinions on sexual intercourse. This was remedied in the analysis in @fig-4, but for other figures the 2020-2021 discrepancies affect how the data plotted.
+
+Upon reviewing the data, its found that identifiers are reused between the years. As it is assumed that the ID is unique to a particular respondent or survey year, there is no way to track whether a particular respondent has participated in multiple surveys. While relatively minor, a discrepancy like this can result in some inflation of responses (example; a respondent who answers "ALWAYS WRONG" every year). Due to sample sizes, this can be considered a minor problem, but should be noted regardless.
+
+## Response Ambiguity
+
+Based on our breakdown in @sec-data3.2, we find that question ambiguity can affect proportion of response greatly. In @fig-5, we find an unusually high percentage of respondents that indicate they are against all forms of pornography. According to contemporary studies opinion of pornography is higher among young demographics, with support seeing a regular increase [@citeBallard]. This correlates with the findings in @fig-1, but a proportion of 40%\~ of respondents having an extremely negative view on pornography seems unusually high based on proportions in the Teen Sex and Premarital Sex variables.
+
+One reason for this could be response ambiguity. The question asked was "Which of these statements comes closest to your feeling about pornography laws?", and the answer "There should be laws against the distribution of pornography whatever the age" is the variable we tracked. This answer, bluntly, is ambiguous. It is unclear whether it means pornography as a whole should be limited, or exploitative pornography should be what is limited. Both interpretations are reasonable, which is what might be the cause of such a high proportion of this specific response.
+
+The way to remedy this question would be to either split it into multiple questions "Opinion on exploitative pornography" and "Opinion on consensual pornography", or to add a fourth answer to the question: "There should be some laws against the distribution of pornography whatever the age". Making the answers clearer mitigates the ambiguity directly, and future social surveys should modify their possible answers to get a better gauge of how the public views controversial topics. Examples of how questions and answers can be improved are attached in @sec-appendix-1.
+
+## Conclusion
+
+\
+Ultimately, this paper finds three core things: opinions on sex is gradually becoming more liberal, certain trends are more conservative than would be expected socially (see @sec-results3 and @sec-results5), and the US social survey has significant sampling and ambiguity issues. While fixing the methodology of the US social survey to prevent oversampling is outside the purview of this research, modified questions to our tracked variables have been provided in @sec-appendix-1. Some key changes were splitting apart the Pornography question to distinguish between legal and illegal pornography. Furthermore, the question regarding teenage sexual relations was modified to a more socially acceptable age (16) and clarified that both parties in the hypothetical intercourse were the same age. These are only the simplest steps the US social survey can take to heighten the quality of their data, but overall greater steps must be taken to modernize the survey in the information age.\
+\
+Further research should focus on discrepancies between data collected between online and in-person respondents. Preliminary analysis, based on @fig-1, indicates that there is a substantially greater proportion of liberal responses in the online survey than in any survey prior. Furthermore, analyzing difference in sample size can give insight to social microcosms; for example, research on why online samples trend to have more liberal respondents could lead to solutions that mitigate the rising political stratification in the United States [@citePolitical]. The General Social Survey has several flaws noted here, but its data continues to be invaluable to researching social trends.
+
+## Acknowledgement
+
+The analysis conducted in this paper would not be possible without the R programming language [@citeR] or the accompanying libraries. Thank you to the creators of ggpubr [@citeGGPUBR], ggplot2 [@citeGGPLOT2], openxlsx [@citeExcel], here [@citehere], patchwork [@citepatchwork], dplyr [@citeDplyr], and knitr [@citeKnitr] for making this paper possible.
+
+# Appendix {#sec-appendix}
+
+## Appendix 1 - Modified Survey {#sec-appendix-1}
+
+[LINK TO SURVEY](https://forms.gle/GmqzAy99N5DYaNtT7)
+
+Q1.
+
+Which of these statements comes closest to your feelings about pornography laws?
+
+There should be no laws forbidding the distribution of pornography
+
+There should be some laws against the distribution of pornography whatever the age
+
+There should be laws against the distribution of pornography whatever the age
+
+There should be laws against the distribution of pornography to persons under 18
+
+No answer
+
+Q2.
+
+If two teenagers, the who are 16 years old, engage in sexual activity with each other, do you think these sexual relations are always wrong, almost always wrong, wrong only sometimes, or not wrong at all?
+
+Not Wrong at All
+
+Sometimes Wrong
+
+Almost Always Wrong
+
+Always Wrong
+
+No Answer
+
+Q3.
+
+What is your opinion about a married person having sexual relations with someone other than the marriage partner--is it always wrong, almost always wrong, wrong only sometimes, or not wrong at all?
+
+Always Wrong
+
+Almost Always Wrong
+
+Not Wrong If Both Members of the Marriage Consent
+
+Not Wrong At All
+
+Q4.
+
+If a man and woman have sex relations before marriage, do you think it is always wrong, almost always wrong, wrong only sometimes, or not wrong at all?
+
+Always Wrong
+
+Almost Always Wrong
+
+Wrong Only Sometimes
+
+Not Wrong At All
+
+Q5.
+
+Which of these statements comes closest to your feelings about consensual pornography depicting legal adults?
+
+Always Wrong
+
+Almost Always Wrong
+
+Wrong Only Sometimes
+
+Not Wrong At All
+
+Q6.
+
+Which of these statements comes closest to your feelings about exploitative pornography? This includes pornographic content deemed illegal or immoral.
+
+Always Wrong
+
+Almost Always Wrong
+
+Wrong Only Sometimes
+
+Not Wrong At All
+
+## Appendix 2 - Raw Social Survey Questions {#sec-appendix-2}
+
+**sex before marriage:**\
+There's been a lot of discussion about the way morals and attitudes about sex are changing in this country. If a man and woman have sex relations before marriage, do you think it is always wrong, almost always wrong, wrong only sometimes, or not wrong at all?
+
+**sex with person other than spouse:\
+**What is your opinion about a married person having sexual relations with someone other than the marriage partner--is it always wrong, almost always wrong, wrong only sometimes, or not wrong at all?
+
+**feelings about pornography laws:\
+**Which of these statements comes closest to your feelings about pornography laws?\
+There should be no laws forbidding the distribution of pornography\
+There should be laws against the distribution of pornography to persons under 18\
+There should be laws against the distribution of pornography whatever the age
+
+**sex before marriage:teens 14-16\
+**There's been a lot of discussion about the way morals and attitudes about sex are changing in this country. If a man and woman have sex relations before marriage, do you think it is always wrong, almost always wrong, wrong only sometimes, or not wrong at all? A. What if they are in their early teens, say 14 to 16 years old? In that case, do you think sex relations before marriage are always wrong, almost always wrong, wrong only sometimes, or not wrong at all?
+
+# References
